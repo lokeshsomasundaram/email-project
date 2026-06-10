@@ -1,12 +1,15 @@
 pipeline {
 agent none
 
-```
 environment {
     GIT_REPO = 'https://github.com/lokeshsomasundaram/email-project.git'
-    BRANCH   = 'main'
+    BRANCH = 'main'
 
-    APP_DIR = '/home/ubuntu/stackly-email'
+    DB_NAME = 'stackly_db'
+    DB_USER = 'stackly_test'
+    DB_PASSWORD = 'Test@1234'
+    DB_HOST = '127.0.0.1'
+    DB_PORT = '3306'
 }
 
 stages {
@@ -38,10 +41,10 @@ stages {
                     node -v
                     npm -v
 
-                    echo "Installing frontend dependencies..."
+                    echo "Installing dependencies..."
                     npm ci --no-audit --no-fund || npm install
 
-                    echo "Building frontend..."
+                    echo "Building Frontend..."
                     npm run build
                 '''
             }
@@ -55,36 +58,28 @@ stages {
             sh '''
                 set -e
 
-                echo "Creating deployment directory..."
-                mkdir -p ${APP_DIR}
+                echo "Syncing workspace to production..."
 
-                echo "Syncing workspace to deployment directory..."
-
-                rsync -av \
-                    --delete \
+                rsync -av --delete \
                     --exclude='.git' \
-                    --exclude='fastapi_app/venv/' \
-                    ${WORKSPACE}/ \
-                    ${APP_DIR}/
+                    --exclude='workspace' \
+                    --exclude='agent.jar' \
+                    --exclude='remoting' \
+                    --exclude='fastapi_app/venv' \
+                    /home/ubuntu/stackly-email/workspace/Project-EmailApp/ \
+                    /home/ubuntu/stackly-email/
 
-                cd ${APP_DIR}
-
-                if [ ! -d fastapi_app/venv ]; then
-                    echo "Creating Python virtual environment..."
-                    python3 -m venv fastapi_app/venv
-                fi
+                cd /home/ubuntu/stackly-email
 
                 echo "Activating virtual environment..."
                 . fastapi_app/venv/bin/activate
 
-                echo "Upgrading pip..."
-                python -m pip install --upgrade pip
+                echo "Installing dependencies..."
+                pip install -r requirements.txt
 
-                echo "Installing Python dependencies..."
-                python -m pip install -r requirements.txt
-
-                echo "Running Django migrations..."
-                python manage.py migrate --noinput
+                echo "Running migrations..."
+                python manage.py makemigrations
+                python manage.py migrate
 
                 echo "Collecting static files..."
                 python manage.py collectstatic --noinput
@@ -99,7 +94,7 @@ stages {
             sh '''
                 set -e
 
-                echo "Testing nginx configuration..."
+                echo "Checking nginx configuration..."
                 sudo nginx -t
 
                 echo "Restarting FastAPI..."
@@ -107,12 +102,6 @@ stages {
 
                 echo "Restarting nginx..."
                 sudo systemctl restart nginx
-
-                echo "FastAPI status:"
-                sudo systemctl status fastapi --no-pager -l || true
-
-                echo "Nginx status:"
-                sudo systemctl status nginx --no-pager -l || true
 
                 echo "Deployment completed successfully."
             '''
@@ -122,13 +111,12 @@ stages {
 
 post {
     success {
-        echo '✅ SUCCESS: EmailApp deployment completed.'
+        echo 'SUCCESS: EmailApp deployment completed.'
     }
 
     failure {
-        echo '❌ FAILED: EmailApp deployment failed.'
+        echo 'FAILED: EmailApp deployment failed.'
     }
 }
-```
 
 }

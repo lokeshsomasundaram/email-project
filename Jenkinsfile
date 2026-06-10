@@ -1,122 +1,97 @@
 pipeline {
-agent none
+    agent any
 
-environment {
-    GIT_REPO = 'https://github.com/thestackly/stackly-email.git'
-    BRANCH = 'main'
+    environment {
+        GIT_CREDS  = 'd411fdc7-738f-4516-9a36-bbffd6c7b9e1'
+        GIT_REPO   = 'https://github.com/thestackly/stackly-email.git'
+        GIT_BRANCH = 'main'
 
-    DB_NAME = 'stackly_db'
-    DB_USER = 'stackly_test'
-    DB_PASSWORD = 'Test@1234'
-    DB_HOST = '127.0.0.1'
-    DB_PORT = '3306'
-}
-
-stages {
-
-    stage('Checkout Code') {
-        agent { label 'emailnode' }
-
-        steps {
-            checkout([
-                $class: 'GitSCM',
-                branches: [[name: "*/${BRANCH}"]],
-                userRemoteConfigs: [[
-                    url: "${GIT_REPO}",
-                    credentialsId: 'github-token-emailapp'
-                ]]
-            ])
-        }
+        SSH_KEY     = 'deploy-ec2-key'
+        DEPLOY_USER = 'ubuntu'
+        DEPLOY_HOST = '13.229.183.222'
+        APP_DIR     = '/home/ubuntu/stackly-email'
     }
 
-    stage('Build Frontend') {
-        agent { label 'emailnode' }
+    stages {
 
-        steps {
-            dir('frontend') {
+        stage('Checkout Code') {
+            steps {
+                git branch: "${GIT_BRANCH}",
+                    credentialsId: "${GIT_CREDS}",
+                    url: "${GIT_REPO}"
+            }
+        }
+
+        stage('Build Frontend') {
+            steps {
                 sh '''
-                    set -e
-
-                    echo "Node Version:"
-                    node -v
-                    npm -v
-
-                    echo "Installing dependencies..."
-                    npm ci --no-audit --no-fund || npm install
-
-                    echo "Building Frontend..."
+                if [ -d frontend ]; then
+                    cd frontend
+                    npm install
                     npm run build
+                else
+                    echo "⚠️ Frontend directory not found, skipping build"
+                fi
                 '''
+            }
+        }
+
+        stage('Deploy & Migrate') {
+            steps {
+                sshagent([env.SSH_KEY]) {
+                    sh """
+                    rsync -avz --delete \
+                      --exclude='.git' \
+                      --exclude='node_modules' \
+                      --exclude='.ssh' \
+                      frontend \
+                      django_backend \
+                      email_project \
+                      fastapi_app \
+                      manage.py \
+                      requirements.txt \
+                      ${DEPLOY_USER}@${DEPLOY_HOST}:${APP_DIR}
+
+                    ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} '
+                        set -e
+                        cd ${APP_DIR}
+
+                        if [ ! -d venv ]; then
+                            echo "🔧 Creating virtual environment"
+                            python3 -m venv venv
+                        fi
+
+                        source venv/bin/activate
+                        pip install --upgrade pip
+                        pip install -r requirements.txt
+                        python manage.py migrate --noinput
+
+                        echo "🎨 Frontend build ready (served directly by nginx)"
+                    '
+                    """
+                }
+            }
+        }
+
+        stage('Restart Services') {
+            steps {
+                sshagent([env.SSH_KEY]) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} '
+                        sudo systemctl restart fastapi
+                    '
+                    """
+                }
             }
         }
     }
 
-    stage('Deploy & Migrate') {
-        agent { label 'emailnode' }
-
-        steps {
-            sh '''
-                set -e
-
-                echo "Syncing workspace to production..."
-
-                rsync -av --delete \
-                    --exclude='.git' \
-                    --exclude='workspace' \
-                    --exclude='agent.jar' \
-                    --exclude='remoting' \
-                    --exclude='fastapi_app/venv' \
-                    /home/ubuntu/stackly-email/workspace/Project-EmailApp/ \
-                    /home/ubuntu/stackly-email/
-
-                cd /home/ubuntu/stackly-email
-
-                echo "Activating virtual environment..."
-                . fastapi_app/venv/bin/activate
-
-                echo "Installing dependencies..."
-                pip install -r requirements.txt
-
-                echo "Running migrations..."
-                python manage.py makemigrations
-                python manage.py migrate
-
-                echo "Collecting static files..."
-                python manage.py collectstatic --noinput
-            '''
+    post {
+        success {
+            echo '✅ stackly-email deployed successfully'
+        }
+        failure {
+            echo '❌ Deployment failed – check stage logs'
         }
     }
-
-    stage('Restart Services') {
-        agent { label 'emailnode' }
-
-        steps {
-            sh '''
-                set -e
-
-                echo "Checking nginx configuration..."
-                sudo nginx -t
-
-                echo "Restarting FastAPI..."
-                sudo systemctl restart fastapi
-
-                echo "Restarting nginx..."
-                sudo systemctl restart nginx
-
-                echo "Deployment completed successfully."
-            '''
-        }
-    }
-}
-
-post {
-    success {
-        echo 'SUCCESS: EmailApp deployment completed.'
-    }
-
-    failure {
-        echo 'FAILED: EmailApp deployment failed.'
-    }
-}
-
 }

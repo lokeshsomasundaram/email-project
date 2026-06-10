@@ -66,7 +66,7 @@ stages {
                     --exclude='agent.jar' \
                     --exclude='remoting' \
                     --exclude='fastapi_app/venv' \
-                    /home/ubuntu/stackly-email/workspace/Project-EmailApp/ \
+                    /home/ubuntu/jenkins-agent/workspace/email-app/ \
                     /home/ubuntu/stackly-email/
 
                 cd /home/ubuntu/stackly-email

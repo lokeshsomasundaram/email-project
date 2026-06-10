@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         GIT_CREDS  = 'd411fdc7-738f-4516-9a36-bbffd6c7b9e1'
-        GIT_REPO   = 'https://github.com/thestackly/stackly-email.git'
+        GIT_REPO   = 'https://github.com/lokeshsomasundaram/email-project.git'
         GIT_BRANCH = 'main'
 
         SSH_KEY     = 'deploy-ec2-key'

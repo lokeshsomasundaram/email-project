@@ -26,7 +26,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG') == 'True'
 
-ALLOWED_HOSTS = ["34.208.181.79"]
+ALLOWED_HOSTS = ["13.212.2.181"]
 
 
 # Application definition
@@ -83,9 +83,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'stackly_db',
-        'USER': 'stackly_test',
-        'PASSWORD': 'Test@1234',
-        'HOST': '127.0.0.1',
+        'USER': 'admin',
+        'PASSWORD': 'Stackly123',
+        'HOST': 'backend-mysql.cjkiww0ks4ih.ap-southeast-1.rds.amazonaws.com',
         'PORT': '3306',
  
         'CONN_MAX_AGE': 60,
@@ -165,7 +165,7 @@ CHANNEL_LAYERS = {
 }
 
 CORS_ALLOWED_ORIGINS = [
-             "http://35.84.217.76","http://35.84.217.76:8000",
+             "http://13.212.2.181","http://13.212.2.181:8000",
                 #  "http://localhost:5173","http://localhost:8000",
         ]
 
@@ -181,7 +181,7 @@ CORS_ALLOW_METHODS = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-   "http://localhost:5173","http://localhost:5174","http://35.84.217.76","http://35.84.217.76:8000" 
+   "http://localhost:5173","http://localhost:5174","http://13.212.2.181","http://13.212.2.181:8000" 
 ]
 
 FAST2SMS_API_KEY = os.getenv("FAST2SMS_API_KEY")

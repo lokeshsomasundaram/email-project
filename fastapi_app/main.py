@@ -41,7 +41,7 @@ scheduler.start()
 app.add_middleware(
     CORSMiddleware,
      allow_origins=[
-           "http://35.84.217.76","http://35.84.217.76:8000",
+           "http://13.212.2.181","http://13.212.2.181:8000",
             #  "http://localhost:5173","http://localhost:8000",
         ],
     allow_credentials=True,

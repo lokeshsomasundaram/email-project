@@ -83,8 +83,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'stackly_db',
-        'USER': 'admin',
-        'PASSWORD': 'Stackly123',
+        'USER': 'stackly_test',
+        'PASSWORD': 'Test@1234',
         'HOST': '127.0.0.1',
         'PORT': '3306',
  

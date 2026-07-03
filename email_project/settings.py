@@ -85,7 +85,7 @@ DATABASES = {
         'NAME': 'stackly_db',
         'USER': 'admin',
         'PASSWORD': 'Stackly123',
-        'HOST': 'backend-mysql.cjkiww0ks4ih.ap-southeast-1.rds.amazonaws.com',
+        'HOST': '127.0.0.1',
         'PORT': '3306',
  
         'CONN_MAX_AGE': 60,
